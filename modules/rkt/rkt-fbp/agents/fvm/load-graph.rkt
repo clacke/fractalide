@@ -24,9 +24,6 @@
     (async-channel-put ch (vector port query rch))
     (async-channel-get rch))
 
-  (define (get-graph agent)
-    (query-response "ask-graph" agent))
-
   (define port-manager (thread (lambda ()
     (let loop ()
       (define msg (async-channel-get ch))
@@ -36,9 +33,11 @@
         (async-channel-put rch (recv (input port)))
         (loop))))))
 
+  (define (get-graph agent)
+    (query-response "ask-graph" agent))
+
   (define (ask-path node)
-    (send (output "ask-path") node)
-    (recv (input "ask-path")))
+    (query-response "ask-path" node))
 
   (define (rec-flat-graph not-visited actual-graph)
     (cond
