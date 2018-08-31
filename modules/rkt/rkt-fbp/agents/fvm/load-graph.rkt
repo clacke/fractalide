@@ -47,23 +47,21 @@
        (cond
         [(not maybe-subnet)
          (rec-flat-graph (cdr not-visited) (graph-insert-agent actual-graph next-agent))]
-        [else ; It's a sub-graph. Get the new graph, add the nodes in not-visited, save the virtual port and save the rest of the graph
-              (let* ([new-graph (get-graph next-agent input output)]
-                     ; Add the agents in the not-visited list
-                     [new-not-visited (append (graph-agent new-graph) (cdr not-visited))]
-                     ; add the virtual port
-                     ; Order is important, we need to save first virtual first, for reccursive array port
-                     [new-virtual-in (append (graph-virtual-in actual-graph) (graph-virtual-in new-graph))]
-                     [new-virtual-out (append (graph-virtual-out actual-graph) (graph-virtual-out new-graph))]
-                     ; add the mesgs
-                     [new-mesg (append (graph-mesg new-graph) (graph-mesg actual-graph))]
-                     ; add the edges
-                     [new-edge (append (graph-edge new-graph) (graph-edge actual-graph))])
-                (rec-flat-graph new-not-visited
-                                (struct-copy graph actual-graph [mesg new-mesg]
-                                             [edge new-edge]
-                                             [virtual-in new-virtual-in]
-                                             [virtual-out new-virtual-out])))])]))
+        [else ; It's a sub-graph. Get the new graph, add the nodes in not-visited,
+              ; save the virtual port and save the rest of the graph
+         (define new-graph (get-graph next-agent))
+         ; Add the agents in the not-visited list
+         (define new-not-visited (append (graph-agent new-graph) (cdr not-visited)))
+         ; add the virtual port
+         ; Order is important, we need to save first virtual first, for reccursive array port
+         (define new-virtual-in (append (graph-virtual-in actual-graph) (graph-virtual-in new-graph)))
+         (define new-virtual-out (append (graph-virtual-out actual-graph) (graph-virtual-out new-graph)))
+         ; add the mesgs
+         (define new-mesg (append (graph-mesg new-graph) (graph-mesg actual-graph)))
+         ; add the edges
+         (define new-edge (append (graph-edge new-graph) (graph-edge actual-graph)))
+         (rec-flat-graph new-not-visited (struct-copy graph actual-graph
+           [mesg new-mesg] [edge new-edge] [virtual-in new-virtual-in] [virtual-out new-virtual-out]))])]))
 
   (define flat (rec-flat-graph (graph-agent actual-graph) (struct-copy graph actual-graph [agent '()])))
   (async-channel-put ch 'stop)
