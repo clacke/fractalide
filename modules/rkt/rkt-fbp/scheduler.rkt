@@ -4,9 +4,10 @@
 
 (require racket/async-channel)
 (require racket/exn)
-
+(require racket/future)
 (require racket/match)
 (require racket/function)
+
 (require fractalide/modules/rkt/rkt-fbp/agent)
 (require fractalide/modules/rkt/rkt-fbp/loader)
 (require fractalide/modules/rkt/rkt-fbp/port)
@@ -18,6 +19,11 @@
 (struct agent-state (state number-ips is-running))
 
 (struct scheduler (agents number-running will-stop mail-box))
+
+(define-syntax-rule (in-parallel body ...)
+  (let ([f (future (lambda () body ...))])
+    (sleep 0)
+    (touch f)))
 
 ; (-> scheduler Msg scheduler)
 (define (scheduler-match self msg)
@@ -223,11 +229,11 @@
           (thread (lambda ()
                     (with-handlers ([exn:fail?
                                     (lambda (e) (eprintf "in agent ~a:~n~a" agt-name (exn->string e)))])
-                      (proc
+                      (in-parallel (proc
                        ((curry get-in) agt)
                        ((curry get-out) agt)
                        ((curry get-in-array) agt)
-                       ((curry get-out-array) agt)))
+                       ((curry get-out-array) agt))))
                     (async-channel-put sched (msg-run-end agt-name))))
           (let* ([new-agt-state (struct-copy agent-state agt-state [is-running #t]
                                               [state agt])]
