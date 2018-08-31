@@ -1,6 +1,7 @@
 #lang racket/base
 
 (require racket/async-channel)
+(require racket/function)
 (require racket/future)
 (require racket/list)
 (require racket/match)
@@ -39,31 +40,48 @@
   (define (ask-path node)
     (query-response "ask-path" node))
 
-  (define (rec-flat-graph not-visited actual-graph)
+  (define (resolve-node node)
+    (define maybe-subgraph (load-graph (g-agent-type node) (lambda () #f)))
+    (if maybe-subgraph (resolve-subgraph node) (resolve-agent node)))
+
+  (define (lazy-resolve-node node)
+    (future (lambda () (resolve-node node))))
+
+  (define (resolve-agent agent)
+    (vector '() (graph (list agent) '() '() '() '())))
+
+  (define (resolve-subgraph subgraph)
+    (define g (get-graph subgraph))
+    (vector (graph-agent g) (graph-set-agent g '())))
+
+  (define (rec-flat-graph not-visited current-graph)
     (cond
-      [(empty? not-visited) actual-graph] ; done!
+      [(empty? not-visited) current-graph] ; done!
       [else
-       (define next-node (car not-visited))
-       (define next-agent (ask-path next-node))
-       (define maybe-subnet (load-graph (g-agent-type next-agent) (lambda () #f)))
-       (cond
-        [(not maybe-subnet)
-         (rec-flat-graph (cdr not-visited) (graph-insert-agent actual-graph next-agent))]
-        [else ; It's a sub-graph. Get the new graph, add the nodes in not-visited,
-              ; save the virtual port and save the rest of the graph
-         (define new-graph (get-graph next-agent))
-         ; Add the agents in the not-visited list
-         (define new-not-visited (append (graph-agent new-graph) (cdr not-visited)))
-         ; add the virtual port
-         ; Order is important, we need to save first virtual first, for reccursive array port
-         (define new-virtual-in (append (graph-virtual-in actual-graph) (graph-virtual-in new-graph)))
-         (define new-virtual-out (append (graph-virtual-out actual-graph) (graph-virtual-out new-graph)))
-         ; add the mesgs
-         (define new-mesg (append (graph-mesg new-graph) (graph-mesg actual-graph)))
-         ; add the edges
-         (define new-edge (append (graph-edge new-graph) (graph-edge actual-graph)))
-         (rec-flat-graph new-not-visited (struct-copy graph actual-graph
-           [mesg new-mesg] [edge new-edge] [virtual-in new-virtual-in] [virtual-out new-virtual-out]))])]))
+       (define nodes (map ask-path not-visited))
+       (define todo (map resolve-node nodes))
+
+       (define next-not-visited (append* (reverse (map (lambda (v) (vector-ref v 0)) todo))))
+       (define graph-additions (map (lambda (v) (vector-ref v 1)) todo))
+
+       (define next-graph (graph
+         (append* (append (reverse (map graph-agent graph-additions))
+                          (list (graph-agent current-graph))))
+         (append* (append (reverse (map graph-edge graph-additions))
+                          (list (graph-edge current-graph))))
+
+         ; for virtual ports, order is important for recursive resolution
+         ; existing ports need to come first
+
+         (append* (graph-virtual-in current-graph)
+                  (map graph-virtual-in graph-additions))
+         (append* (graph-virtual-out current-graph)
+                  (map graph-virtual-out graph-additions))
+
+         (append* (append (reverse (map graph-mesg graph-additions))
+                          (list (graph-mesg current-graph))))))
+
+       (rec-flat-graph next-not-visited next-graph)]))
 
   (define flat (rec-flat-graph (graph-agent actual-graph) (struct-copy graph actual-graph [agent '()])))
   (async-channel-put ch 'stop)
