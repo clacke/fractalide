@@ -1,17 +1,33 @@
 #lang racket/base
 
+(require racket/async-channel)
+(require racket/future)
 (require racket/list)
+(require racket/match)
+
 (require fractalide/modules/rkt/rkt-fbp/agent)
 (require fractalide/modules/rkt/rkt-fbp/loader)
 (require fractalide/modules/rkt/rkt-fbp/graph)
 
-; (-> agent graph)
-(define (get-graph agent input output)
-  (send (output "ask-graph") agent)
-  (recv (input "ask-graph")))
-
 ; (- (Listof agent) graph String graph)
 (define (flat-graph actual-graph input output)
+  (define ch (make-async-channel))
+  (define (get-graph agent . _)
+    (define rch (make-async-channel))
+    (define (put msg) (async-channel-put ch (cons msg rch)))
+    (define (get) (async-channel-get rch))
+
+    (put agent)
+    (get))
+  (define graph-getter (thread (lambda ()
+    (let loop ()
+      (define msg (async-channel-get ch))
+      (unless (eq? msg 'stop)
+        (match-define (cons agent rch) msg)
+        (send (output "ask-graph") agent)
+        (async-channel-put rch (recv (input "ask-graph")))
+        (loop))))))
+
   (define (rec-flat-graph not-visited actual-graph)
     (if (empty? not-visited)
         ; True -> End of the flat part
@@ -40,7 +56,9 @@
                                              [virtual-out new-virtual-out])))
               ; It's a normal agent, do nothing and go for the next
               (rec-flat-graph (cdr not-visited) (struct-copy graph actual-graph [agent (cons next (graph-agent actual-graph))]))))))
-  (rec-flat-graph (graph-agent actual-graph) (struct-copy graph actual-graph [agent '()])))
+  (define the-graph (rec-flat-graph (graph-agent actual-graph) (struct-copy graph actual-graph [agent '()])))
+  (async-channel-put ch 'stop)
+  the-graph)
 
 (define-agent
   #:input '("in" "ask-path" "ask-graph")
