@@ -9,6 +9,12 @@
 (require fractalide/modules/rkt/rkt-fbp/loader)
 (require fractalide/modules/rkt/rkt-fbp/graph)
 
+(define (graph-set-agent g a)
+  (struct-copy graph g [agent a]))
+
+(define (graph-insert-agent g a)
+  (graph-set-agent g (cons a (graph-agent g))))
+
 ; (- (Listof agent) graph String graph)
 (define (flat-graph actual-graph input output)
   (define ch (make-async-channel))
@@ -27,18 +33,22 @@
         (send (output "ask-graph") agent)
         (async-channel-put rch (recv (input "ask-graph")))
         (loop))))))
+  (define (ask-path node)
+    (send (output "ask-path") node)
+    (recv (input "ask-path")))
 
   (define (rec-flat-graph not-visited actual-graph)
-    (if (empty? not-visited)
-        ; True -> End of the flat part
-        actual-graph
-        ; False -> Visit the next node
-        (let* ([next (car not-visited)]
-               [next (begin (send (output "ask-path") next) (recv (input "ask-path")))]
-               [is-subnet? (load-graph (g-agent-type next) (lambda () #f))])
-          (if is-subnet?
-              ; It's a sub-graph. Get the new graph, add the nodes in not-visited, save the virtual port and save the rest of the graph
-              (let* ([new-graph (get-graph next input output)]
+    (cond
+      [(empty? not-visited) actual-graph] ; done!
+      [else
+       (define next-node (car not-visited))
+       (define next-agent (ask-path next-node))
+       (define maybe-subnet (load-graph (g-agent-type next-agent) (lambda () #f)))
+       (cond
+        [(not maybe-subnet)
+         (rec-flat-graph (cdr not-visited) (graph-insert-agent actual-graph next-agent))]
+        [else ; It's a sub-graph. Get the new graph, add the nodes in not-visited, save the virtual port and save the rest of the graph
+              (let* ([new-graph (get-graph next-agent input output)]
                      ; Add the agents in the not-visited list
                      [new-not-visited (append (graph-agent new-graph) (cdr not-visited))]
                      ; add the virtual port
@@ -53,12 +63,11 @@
                                 (struct-copy graph actual-graph [mesg new-mesg]
                                              [edge new-edge]
                                              [virtual-in new-virtual-in]
-                                             [virtual-out new-virtual-out])))
-              ; It's a normal agent, do nothing and go for the next
-              (rec-flat-graph (cdr not-visited) (struct-copy graph actual-graph [agent (cons next (graph-agent actual-graph))]))))))
-  (define the-graph (rec-flat-graph (graph-agent actual-graph) (struct-copy graph actual-graph [agent '()])))
+                                             [virtual-out new-virtual-out])))])]))
+
+  (define flat (rec-flat-graph (graph-agent actual-graph) (struct-copy graph actual-graph [agent '()])))
   (async-channel-put ch 'stop)
-  the-graph)
+  flat)
 
 (define-agent
   #:input '("in" "ask-path" "ask-graph")
