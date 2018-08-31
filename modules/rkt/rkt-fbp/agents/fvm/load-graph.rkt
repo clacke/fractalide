@@ -7,7 +7,6 @@
 (require racket/match)
 
 (require fractalide/modules/rkt/rkt-fbp/agent)
-(require fractalide/modules/rkt/rkt-fbp/loader)
 (require fractalide/modules/rkt/rkt-fbp/graph)
 
 (define (graph-set-agent g a)
@@ -41,8 +40,8 @@
     (query-response "ask-path" node))
 
   (define (resolve-node node)
-    (define maybe-subgraph (load-graph (g-agent-type node) (lambda () #f)))
-    (if maybe-subgraph (resolve-subgraph node) (resolve-agent node)))
+    (define maybe-subgraph (get-graph node))
+    (if maybe-subgraph (resolve-subgraph maybe-subgraph) (resolve-agent node)))
 
   (define (lazy-resolve-node node)
     (future (lambda () (resolve-node node))))
@@ -51,8 +50,7 @@
     (vector '() (graph (list agent) '() '() '() '())))
 
   (define (resolve-subgraph subgraph)
-    (define g (get-graph subgraph))
-    (vector (graph-agent g) (graph-set-agent g '())))
+    (vector (graph-agent subgraph) (graph-set-agent subgraph '())))
 
   (define (rec-flat-graph not-visited current-graph)
     (cond
