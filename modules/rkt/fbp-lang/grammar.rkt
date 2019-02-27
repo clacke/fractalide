@@ -1,5 +1,6 @@
 #lang brag
 
+graph: NL* internal-path* final-path NL*
 mesg: STRING
 bare-node: IDENTIFIER
 component-node: IDENTIFIER "(" IDENTIFIER ")"
@@ -15,4 +16,3 @@ internal-path: component-node ( "," | NL )
 final-path: component-node ";"
 | path-steps ";"
 path-steps: ( mesg | node port ) ARROW NL* port node ( edge node )*
-graph: internal-path* final-path

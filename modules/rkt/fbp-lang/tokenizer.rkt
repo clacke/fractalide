@@ -30,6 +30,6 @@
      (token 'IDENTIFIER lexeme)]))
 
   (port-count-lines! ip)
-  (define (next-token) (define x (lexer ip)) (eprintf "token ~a~n" x) x)
+  (define (next-token) (lexer ip))
   next-token)
 
