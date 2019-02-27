@@ -1,5 +1,12 @@
 { pkgs ? (import ../../.. {}).pkgs
-, buildThinRacketPackage ? pkgs.buildThinRacketPackage
+, buildRacketPackage ? racket2nix.buildRacketPackage
+, racket2nix ? pkgs.racket2nix
 }:
 
-buildThinRacketPackage ./.
+buildRacketPackage (builtins.path {
+  name = "fbp-lang";
+  path = ./.;
+  filter = (path: type:
+    type != "symlink"
+  );
+})

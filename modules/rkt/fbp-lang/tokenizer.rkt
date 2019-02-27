@@ -19,7 +19,7 @@
     [":"
      (token ":" lexeme)]
     ["->"
-     (token "->" lexeme)]
+     (token 'ARROW lexeme)]
     ["("
      (token "(" lexeme)]
     [")"
@@ -27,13 +27,7 @@
     [(concatenation "'" (repetition 1 +inf.0 (char-complement (union "'" "\n"))) "'")
      (token 'STRING lexeme)]
     [(repetition 1 +inf.0 (union numeric alphabetic "-" "/"))
-     (token 'IDENTIFIER lexeme)]
-    [(eof)
-     (cond
-       [end? 'EOF]
-       [else
-        (set! end? #t)
-        'END])]))
+     (token 'IDENTIFIER lexeme)]))
 
   (port-count-lines! ip)
   (define (next-token) (define x (lexer ip)) (eprintf "token ~a~n" x) x)

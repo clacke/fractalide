@@ -1,18 +1,18 @@
 #lang brag
 
 mesg: STRING
-node: bare-node
-| component-node
 bare-node: IDENTIFIER
 component-node: IDENTIFIER "(" IDENTIFIER ")"
-port: plain-port
-| array-port
+node: bare-node
+| component-node
 plain-port: IDENTIFIER
 array-port: IDENTIFIER "[" IDENTIFIER "]"
-edge: port "->" NL* port
+port: plain-port
+| array-port
+edge: port ARROW NL* port
 internal-path: component-node ( "," | NL )
 | path-steps ( "," | NL )
-final-path: component-node ( ";" | END )
-| path-steps ( ";" | END)
-path-steps: ( mesg | node port ) "->" NL* port node ( edge node )*
+final-path: component-node ";"
+| path-steps ";"
+path-steps: ( mesg | node port ) ARROW NL* port node ( edge node )*
 graph: internal-path* final-path
