@@ -15,6 +15,7 @@ in
     x86_64-darwin = genJobs (import ./pkgs { system = "x86_64-darwin"; }) // {
       latest-nixpkgs = genJobs (import ./pkgs { system = "x86_64-darwin"; pkgs = import <nixpkgs>; });
     };
+    fbp-test = (import ./modules/rkt/fbp-lang {}).test;
   } // (import <nixpkgs> {}).lib.optionalAttrs isTravis {
     travisOrder = [ "rs-tests" "fractalide" ];
   }
