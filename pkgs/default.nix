@@ -40,6 +40,7 @@ pkgs {
         filter = (path: type:
           let basePath = baseNameOf path; in
           (null != builtins.match ((toString ./..) + "(/info.rkt|/(modules|edges|nodes)(/rkt(/.*)?)?)") path) &&
+          (null == builtins.match ((toString ./..) + "/modules.rkt/fbp-lang/.*") path) &&
           (type != "symlink" || null == builtins.match "result.*" basePath) &&
           (null == builtins.match ".*[.]nix" basePath) &&
           (null == builtins.match "[.].*[.]swp" basePath) &&
