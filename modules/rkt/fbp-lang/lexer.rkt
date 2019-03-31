@@ -22,6 +22,10 @@
    (token "(" lexeme)]
   [")"
    (token ")" lexeme)]
+  ["["
+   (token "[" lexeme)]
+  ["]"
+   (token "]" lexeme)]
   [(concatenation "'" (repetition 1 +inf.0 (char-complement (union "'" "\n"))) "'")
    (token 'STRING lexeme)]
   [(repetition 1 +inf.0 (union numeric alphabetic "-" "/"))
