@@ -16,5 +16,5 @@ in
       latest-nixpkgs = genJobs (import ./pkgs { system = "x86_64-darwin"; pkgs = import <nixpkgs>; });
     };
   } // (import <nixpkgs> {}).lib.optionalAttrs isTravis {
-    travisOrder = [ "rs-tests" "fractalide" ];
+    travisOrder = [ "fractalide" ];
   }
