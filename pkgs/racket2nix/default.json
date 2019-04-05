@@ -1,7 +1,7 @@
 {
-  "url": "https://github.com/fractalide/racket2nix.git",
-  "rev": "4c1e6bd2337d67913e977d900e3d2a067d293713",
-  "date": "2019-04-05T05:41:38+08:00",
-  "sha256": "1yhf5743v23g826bmkgw6gavpcmyigr1q1hbni4qyw3lvdx6zkva",
+  "url": "https://github.com/clacke/racket2nix-clacke",
+  "rev": "5afa3026db4b28836f36d89f236474b3fdab8fb2",
+  "date": "2019-04-05T19:43:47+08:00",
+  "sha256": "0c3x0m84mvi6d4c616y3y0zc4z0kl541r43pd98c1axq83h57q5b",
   "fetchSubmodules": false
 }
